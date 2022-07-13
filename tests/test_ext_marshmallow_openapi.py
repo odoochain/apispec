@@ -207,21 +207,6 @@ class TestMarshmallowSchemaToModelDefinition:
 
 
 class TestMarshmallowSchemaToParameters:
-    @pytest.mark.parametrize("ListClass", [fields.List, CustomList])
-    def test_field_multiple(self, ListClass, openapi):
-        field = ListClass(fields.Str)
-        res = openapi._field2parameter(field, name="field", location="query")
-        assert res["in"] == "query"
-        if openapi.openapi_version.major < 3:
-            assert res["type"] == "array"
-            assert res["items"]["type"] == "string"
-            assert res["collectionFormat"] == "multi"
-        else:
-            assert res["schema"]["type"] == "array"
-            assert res["schema"]["items"]["type"] == "string"
-            assert res["style"] == "form"
-            assert res["explode"] is True
-
     def test_field_required(self, openapi):
         field = fields.Str(required=True)
         res = openapi._field2parameter(field, name="field", location="query")
@@ -251,6 +236,21 @@ class TestMarshmallowSchemaToParameters:
         assert param["required"] is True
         param = next(p for p in res_nodump if p["name"] == "partial_field")
         assert param["required"] is False
+
+    @pytest.mark.parametrize("ListClass", [fields.List, CustomList])
+    def test_field_list(self, ListClass, openapi):
+        field = ListClass(fields.Str)
+        res = openapi._field2parameter(field, name="field", location="query")
+        assert res["in"] == "query"
+        if openapi.openapi_version.major < 3:
+            assert res["type"] == "array"
+            assert res["items"]["type"] == "string"
+            assert res["collectionFormat"] == "multi"
+        else:
+            assert res["schema"]["type"] == "array"
+            assert res["schema"]["items"]["type"] == "string"
+            assert res["style"] == "form"
+            assert res["explode"] is True
 
     # json/body is invalid for OpenAPI 3
     @pytest.mark.parametrize("openapi", ("2.0",), indirect=True)
