@@ -106,6 +106,7 @@ class FieldConverterMixin:
             self.field2length,
             self.field2pattern,
             self.metadata2properties,
+            self.enum2properties,
             self.nested2properties,
             self.pluck2properties,
             self.list2properties,
@@ -500,6 +501,21 @@ class FieldConverterMixin:
         ret = {}
         if isinstance(field, marshmallow.fields.TimeDelta):
             ret["x-unit"] = field.precision
+        return ret
+
+    def enum2properties(self, field, **kwargs: typing.Any) -> dict:
+        """Return a dictionary of properties from :class:`EnumSymbol <marshmallow.fields.EnumSymbol`
+        and :class:`EnumValue <marshmallow.fields.EnumValue`fields.
+
+        :param Field field: A marshmallow field.
+        :rtype: dict
+        """
+        if isinstance(field, marshmallow.fields.EnumSymbol):
+            ret = {}
+            ret["enum"] = field.choices
+        elif isinstance(field, marshmallow.fields.EnumValue):
+            ret = self.field2type_and_format(field.field)
+            ret["enum"] = field.choices
         return ret
 
 
