@@ -8,7 +8,7 @@ import re
 import json
 import typing
 
-from distutils import version
+from packaging.version import Version
 
 from apispec import exceptions
 
@@ -73,7 +73,7 @@ def validate_spec(spec: APISpec) -> bool:
             "    pip install 'apispec[validation]'"
         ) from error
     parser_kwargs = {}
-    if spec.openapi_version.version[0] == 3:
+    if spec.openapi_version.major == 3:
         parser_kwargs["backend"] = "openapi-spec-validator"
     try:
         prance.BaseParser(spec_string=json.dumps(spec.to_dict()), **parser_kwargs)
@@ -83,7 +83,7 @@ def validate_spec(spec: APISpec) -> bool:
         return True
 
 
-class OpenAPIVersion(version.LooseVersion):
+class OpenAPIVersion(Version):
     """OpenAPI version
 
     :param str|OpenAPIVersion openapi_version: OpenAPI version
@@ -101,12 +101,12 @@ class OpenAPIVersion(version.LooseVersion):
             assert str(ver) == '3.0.2'
     """
 
-    MIN_INCLUSIVE_VERSION = version.LooseVersion("2.0")
-    MAX_EXCLUSIVE_VERSION = version.LooseVersion("4.0")
+    MIN_INCLUSIVE_VERSION = Version("2.0")
+    MAX_EXCLUSIVE_VERSION = Version("4.0")
 
-    def __init__(self, openapi_version: version.LooseVersion | str) -> None:
-        if isinstance(openapi_version, version.LooseVersion):
-            openapi_version = openapi_version.vstring
+    def __init__(self, openapi_version: Version | str) -> None:
+        if isinstance(openapi_version, str):
+            openapi_version = Version(openapi_version)
         if (
             not self.MIN_INCLUSIVE_VERSION
             <= openapi_version
@@ -115,19 +115,28 @@ class OpenAPIVersion(version.LooseVersion):
             raise exceptions.APISpecError(
                 f"Not a valid OpenAPI version number: {openapi_version}"
             )
+
+        # Ensure compatibility with distutils.version.LooseVersion
+        self.version = [
+            openapi_version.major,
+            openapi_version.minor,
+            openapi_version.micro,
+        ]
+        openapi_version = str(openapi_version)
         super().__init__(openapi_version)
 
-    @property
-    def major(self) -> int:
-        return int(self.version[0])
+    def __eq__(self, version: Version | str):
+        return str(self) == str(version)
 
+    # Ensure compatibility with distutils.version.LooseVersion
     @property
-    def minor(self) -> int:
-        return int(self.version[1])
+    def vstring(self) -> str:
+        return str(self)
 
+    # Ensure compatibility with distutils.version.LooseVersion
     @property
-    def patch(self) -> int:
-        return int(self.version[2])
+    def patch(self) -> str:
+        return self.micro
 
 
 # from django.contrib.admindocs.utils
